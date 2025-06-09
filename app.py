@@ -161,14 +161,17 @@ if df is not None:
                 shap_values_china = explainer_china(X_test_china)
 
                 st.subheader("USA SHAP Summary")
-                fig = shap.plots.beeswarm(shap_values_usa, show=False)
-                st.pyplot(bbox_inches='tight')
+                fig, ax = plt.subplots()
+                shap.plots.beeswarm(shap_values_usa, show=False, ax=ax)
+                st.pyplot(fig)
 
                 st.subheader("China SHAP Summary")
-                fig = shap.plots.beeswarm(shap_values_china, show=False)
-                st.pyplot(bbox_inches='tight')
+                fig, ax = plt.subplots()
+                shap.plots.beeswarm(shap_values_china, show=False, ax=ax)
+                st.pyplot(fig)
 
             except Exception as e:
                 st.warning(f"Could not compute SHAP values: {e}")
     else:
         st.warning("Data for USA or China not found in the file.")
+
