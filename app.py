@@ -8,6 +8,12 @@ from sklearn.metrics import r2_score  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 import os
 
+# SHAP library
+try:
+    import shap
+except ImportError:
+    st.error("SHAP library not installed. Please run 'pip install shap'")
+
 st.set_page_config(layout="wide")
 
 @st.cache_data
@@ -32,7 +38,7 @@ def train_rf_model(data, features, target):
     model.fit(X_train, y_train)
     predictions = model.predict(X_test)
     score = r2_score(y_test, predictions)
-    return model, score
+    return model, score, X_train, X_test
 
 def predict_rf(model, base_data, tariff, features, target, future_years):
     mean_features = base_data[features].drop(columns=["Year", "Average Tariff Rate (%)"]).mean()
@@ -66,8 +72,8 @@ if df is not None:
     df_china = df[df["Country"] == "China"].copy()
 
     if not df_usa.empty and not df_china.empty:
-        rf_usa, r2_usa = train_rf_model(df_usa, features, target)
-        rf_china, r2_china = train_rf_model(df_china, features, target)
+        rf_usa, r2_usa, X_train_usa, X_test_usa = train_rf_model(df_usa, features, target)
+        rf_china, r2_china, X_train_china, X_test_china = train_rf_model(df_china, features, target)
 
         st.sidebar.header("Settings")
         st.sidebar.metric("USA RF R² Score", f"{r2_usa:.2f}")
@@ -144,5 +150,25 @@ if df is not None:
         ax2.invert_yaxis()
         plt.tight_layout()
         st.pyplot(fig)
+
+        st.header("SHAP Summary Analysis")
+        if "shap" in globals():
+            try:
+                explainer_usa = shap.Explainer(rf_usa, X_train_usa)
+                shap_values_usa = explainer_usa(X_test_usa)
+
+                explainer_china = shap.Explainer(rf_china, X_train_china)
+                shap_values_china = explainer_china(X_test_china)
+
+                st.subheader("USA SHAP Summary")
+                fig = shap.plots.beeswarm(shap_values_usa, show=False)
+                st.pyplot(bbox_inches='tight')
+
+                st.subheader("China SHAP Summary")
+                fig = shap.plots.beeswarm(shap_values_china, show=False)
+                st.pyplot(bbox_inches='tight')
+
+            except Exception as e:
+                st.warning(f"Could not compute SHAP values: {e}")
     else:
         st.warning("Data for USA or China not found in the file.")
