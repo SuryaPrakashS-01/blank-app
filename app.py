@@ -45,13 +45,24 @@ def train_rf_model(data, features, target):
     return model, score, X_train, X_test
 
 def predict_rf(model, base_data, tariff, features, target, future_years):
-    mean_features = base_data[features].drop(columns=["Year", "Average Tariff Rate (%)"]).mean()
-    data = []
-    for year in future_years:
-        row = {"Year": year, "Average Tariff Rate (%)": tariff}
-        row.update(mean_features)
-        data.append(row)
-    df_future = pd.DataFrame(data)[features]
+    # Instead of taking mean, simulate future macroeconomic inputs
+    future_data = []
+    for i, year in enumerate(future_years):
+        # Optional: trend-based or scenario-based values
+        gdp_growth = base_data["GDP Growth (%)"].mean() + 0.2 * i
+        usd_inr = base_data["USD/INR (avg)"].mean() + 0.5 * i
+        inflation = base_data["Inflation (CPI, %)"].mean() + 0.1 * i
+
+        row = {
+            "Year": year,
+            "Average Tariff Rate (%)": tariff,
+            "GDP Growth (%)": gdp_growth,
+            "USD/INR (avg)": usd_inr,
+            "Inflation (CPI, %)": inflation
+        }
+        future_data.append(row)
+
+    df_future = pd.DataFrame(future_data)[features]
     predictions = model.predict(df_future)
     return pd.DataFrame({"Year": future_years, target: predictions / 1e9})
 
